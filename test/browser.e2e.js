@@ -120,6 +120,7 @@ const URL = process.env.APP_URL || "http://localhost:8765/index.html";
   await page.click("#tabBtn-reward");
   await page.fill("#rIds", "文書公差：002 002");
   await page.selectOption("#rArticle", "第20條");
+  assert.match(await page.textContent("#rArticle"), /第19條｜予以申誡[\s\S]*第20條｜予以記過/);
   assert.match(await page.textContent("#rClause"), /第17款｜（分 2 目/);
   await page.selectOption("#rClause", "第17款");
   assert.match(await page.textContent("#rItem"), /第1目｜測試事由乙。[\s\S]*第2目｜測試事由丙。/);

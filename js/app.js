@@ -36,6 +36,18 @@
     select.replaceChildren(new Option(placeholder, ""));
     pairs.forEach(([value, label]) => { const option = new Option(label, value); option.title = label; select.add(option); });
   }
+  // 「條」顯示獎懲程度（學生獎懲規定第16～24條）；範本若有其他條，改顯示範本設定的額度
+  const ARTICLE_LEVELS = {
+    "第16條": "予以嘉獎", "第17條": "予以記功", "第18條": "予以記大功",
+    "第19條": "予以申誡", "第20條": "予以記過", "第21條": "予以記大過",
+    "第22條": "予以留校察看", "第23條": "予以勒令退學或退訓", "第24條": "予以開除學籍或退訓"
+  };
+  function articleChoices(t) {
+    return core.unique(t.rules.map(rule => rule.article)).map(article => {
+      const level = ARTICLE_LEVELS[article] || (t.defaultAmounts[article] ? "額度：" + t.defaultAmounts[article] : "");
+      return [article, level ? article + "｜" + level : article];
+    });
+  }
   function clauseChoices(t, article) {
     const rows = t.rules.filter(rule => rule.article === article);
     return core.unique(rows.map(rule => rule.clause)).map(clause => {
@@ -756,7 +768,7 @@
 
   function rResetRuleControls() {
     const t = rT();
-    fillOptions($("rArticle"), t ? core.unique(t.rules.map(rule => rule.article)) : [], t ? "請選擇條" : "請先匯入獎懲範本");
+    fillLabeled($("rArticle"), t ? articleChoices(t) : [], t ? "請選擇條" : "請先匯入獎懲範本");
     fillOptions($("rClause"), [], "請先選擇條");
     fillOptions($("rItem"), [], "請先選擇款");
     $("rAmount").value = "";
@@ -928,7 +940,7 @@
     $("rEditSummary").textContent = single ? records[0].name + "（" + records[0].cohort + "，學號 " + records[0].school + "）" :
       records.slice(0, 5).map(r => r.name).join("、") + (records.length > 5 ? "等 " + records.length + " 位學生" : "");
     ["rEditApplyRule", "rEditApplyReason", "rEditApplyAdjust"].forEach(id => { $(id).checked = single; });
-    fillOptions($("rEditArticle"), core.unique(t.rules.map(rule => rule.article)), "請選擇條");
+    fillLabeled($("rEditArticle"), articleChoices(t), "請選擇條");
     $("rEditArticle").value = common("article");
     fillOptions($("rEditAdjustReason"), t.adjustmentOptions, "無（清除）");
     $("rEditAdjustReason").value = common("adjustReason");
