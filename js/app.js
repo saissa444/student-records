@@ -31,6 +31,23 @@
     values.forEach(value => select.add(new Option(value, value)));
   }
 
+  // 下拉選單：值維持原本的條款目代碼，顯示文字加上事由，方便直接看內容挑選
+  function fillLabeled(select, pairs, placeholder) {
+    select.replaceChildren(new Option(placeholder, ""));
+    pairs.forEach(([value, label]) => { const option = new Option(label, value); option.title = label; select.add(option); });
+  }
+  function clauseChoices(t, article) {
+    const rows = t.rules.filter(rule => rule.article === article);
+    return core.unique(rows.map(rule => rule.clause)).map(clause => {
+      const own = rows.filter(rule => rule.clause === clause), items = core.unique(own.map(rule => rule.item).filter(Boolean));
+      return [clause, clause + "｜" + (items.length ? "（分 " + items.length + " 目，請在下一欄選擇）" : own[0].reason)];
+    });
+  }
+  function itemChoices(relevant) {
+    const seen = new Set();
+    return relevant.filter(rule => rule.item && !seen.has(rule.item) && seen.add(rule.item)).map(rule => [rule.item, rule.item + "｜" + rule.reason]);
+  }
+
   /* ───────── 存檔 ───────── */
   let saveTimer = null;
   function saveDrafts() {
@@ -759,15 +776,15 @@
   }
   $("rArticle").addEventListener("change", () => {
     const t = rT(), article = $("rArticle").value;
-    fillOptions($("rClause"), core.unique(t.rules.filter(rule => rule.article === article).map(rule => rule.clause)), "請選擇款");
+    fillLabeled($("rClause"), article ? clauseChoices(t, article) : [], article ? "請選擇款" : "請先選擇條");
     $("rClause").disabled = !article;
     fillOptions($("rItem"), [], "請先選擇款"); $("rItem").disabled = true;
     rSyncRuleDetails();
   });
   $("rClause").addEventListener("change", () => {
     const relevant = rT().rules.filter(rule => rule.article === $("rArticle").value && rule.clause === $("rClause").value);
-    const items = core.unique(relevant.map(rule => rule.item).filter(Boolean));
-    fillOptions($("rItem"), items, items.length ? "請選擇目" : relevant.length ? "無目（不需選擇）" : "請先選擇款");
+    const items = itemChoices(relevant);
+    fillLabeled($("rItem"), items, items.length ? "請選擇目" : relevant.length ? "無目（不需選擇）" : "請先選擇款");
     $("rItem").disabled = !items.length;
     rSyncRuleDetails();
   });
@@ -890,14 +907,13 @@
   }
   function rFillEditItems(value) {
     const relevant = rT().rules.filter(rule => rule.article === $("rEditArticle").value && rule.clause === $("rEditClause").value);
-    const items = core.unique(relevant.map(rule => rule.item).filter(Boolean));
-    fillOptions($("rEditItem"), items, items.length ? "請選擇目" : relevant.length ? "無目（不需選擇）" : "請先選擇款");
+    const items = itemChoices(relevant);
+    fillLabeled($("rEditItem"), items, items.length ? "請選擇目" : relevant.length ? "無目（不需選擇）" : "請先選擇款");
     $("rEditItem").value = value || "";
     rFillEditorReason(); rSyncEditor();
   }
   function rFillEditClauses(clause, item) {
-    const clauses = core.unique(rT().rules.filter(rule => rule.article === $("rEditArticle").value).map(rule => rule.clause));
-    fillOptions($("rEditClause"), clauses, "請選擇款");
+    fillLabeled($("rEditClause"), $("rEditArticle").value ? clauseChoices(rT(), $("rEditArticle").value) : [], "請選擇款");
     $("rEditClause").value = clause || "";
     rFillEditItems(item);
   }
